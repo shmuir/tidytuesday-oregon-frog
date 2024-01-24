@@ -14,11 +14,14 @@ library(janitor)
 ```{r}
 # Get the Data
 frogs <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-08-02/frogs.csv') %>%
-  clean_names()
+  clean_names() %>%  
+  mutate(sex = ifelse(female == 1, "female", "male"),
+         hab_type = as.factor(hab_type))
+
 
 # add font ----------------------------------------------------------------
-sysfonts::font_add_google(name = "Open Sans", family = "Open Sans")
-font <- "Open Sans"
+sysfonts::font_add_google(name = "Roboto", family = "Roboto")
+font <- "Roboto"
 
 # turn on showtext --------------------------------------------------------
 showtext::showtext_auto()
@@ -47,10 +50,10 @@ ggplot(frogs_clean, aes(x = hab_type, y = sum, fill = sex)) +
         legend.title = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.grid.major.y = element_line(color = "#000000", size = 0.25),
-        axis.line.x.bottom = element_line(color = "#000000", size = 0.35),
+        panel.grid.major.y = element_line(color = "#000000", linewidth = 0.25),
+        axis.line.x.bottom = element_line(color = "#000000", linewidth = 0.35),
         plot.margin = unit(c(2, 2, 2, 2), "cm"),
-        plot.background = element_rect(color = "#f2f2f2", fill = "#f2f2f2")) +
+        plot.background = element_rect(color = "#FDFBF7", fill = "#FDFBF7")) +
   labs(title = "Habitat of the Oregon Spotted Frog", subtitle = "Data collected by the USGS September to November 2018 at the Crane Prairie Reservoir in Oregon, USA\n", y = "Number of frogs\n", caption = "\nData: usgs.gov | Sam Muir | tidytuesday")
 ```
 
@@ -60,10 +63,38 @@ Crane Prairie Reservoir in Oregon, USA.
 ```{r}
 library(terra)
 library(sf)
+library(leaflet)
+library(htmltools)
+library(plotly)
 
-# prepare frogs spatial data
-frogs_sf <- st_as_sf(frogs, coords = c(7,8))
-st_crs(frogs_sf) <- "EPSG:26911"
-frogs_sf <- st_transform(frogs_sf, "EPSG:4326")
+#Conversion of data frame to sf object
+frogs_sf <- st_as_sf(x = frogs,                         
+                  coords = c("utme_83", "utmn_83"),
+                  crs = "+proj=utm +zone=10")
+
+#Projection transformation
+frogs_sf <- st_transform(frogs_sf, crs = "+proj=longlat +datum=WGS84")
 ```
+
+
+```{r}
+pal <-colorFactor(c("#01377D", "#588BAE", "#26B170"), domain = frogs_sf$hab_type) # define color palette
+
+labels <- sprintf(frogs_sf$sex) %>% 
+  lapply(htmltools::HTML)
+
+leaflet() %>%
+  addCircleMarkers(data = frogs_sf, # add centroids to map
+             color = ~pal(frogs_sf$hab_type),
+             radius = 0.25,
+             opacity = 1,
+             label = labels) %>%
+  addLegend(pal = pal, # legend for centroids
+            values = frogs_sf$hab_type,
+            opacity = 1,
+            position = "bottomright") %>%
+  addScaleBar() %>%
+  addTiles() # basemap
+```
+
 
