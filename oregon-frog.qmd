@@ -1,0 +1,69 @@
+---
+title: "tidytuesday: Oregon Spotted Frog"
+author: "Sam Muir"
+format: html
+---
+
+This analysis and visualization was made for [tidytuesday](https://github.com/rfordatascience/tidytuesday/tree/master/data/2022/2022-08-02). 
+
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+```{r}
+# Get the Data
+frogs <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-08-02/frogs.csv') %>%
+  clean_names()
+
+# add font ----------------------------------------------------------------
+sysfonts::font_add_google(name = "Open Sans", family = "Open Sans")
+font <- "Open Sans"
+
+# turn on showtext --------------------------------------------------------
+showtext::showtext_auto()
+
+
+frogs_clean <- frogs %>%
+  mutate(sex = ifelse(female == 1, "female", "male")) %>%
+  group_by(sex, hab_type) %>%
+  summarise(sum = n())
+```
+
+```{r}
+ggplot(frogs_clean, aes(x = hab_type, y = sum, fill = sex)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("cornflowerblue", "seagreen")) +
+  theme_minimal() +
+  theme(text = element_text(size = 8, family = font, color = "#000000"),
+        plot.title = element_text(family = font, size = 30, hjust = 0.5, face = "bold"),
+        plot.title.position = "plot",
+        plot.subtitle = element_text(family = font, size = 10, hjust = 0.5, lineheight = 1.1),
+        plot.caption = element_text(hjust = 0.5, size = 8),
+        axis.text = element_text(size = 11, family = font, color = "#000000"),
+        axis.title.y = element_text(size = 13), 
+        axis.title.x = element_blank(), 
+        legend.position = "top",
+        legend.title = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_line(color = "#000000", size = 0.25),
+        axis.line.x.bottom = element_line(color = "#000000", size = 0.35),
+        plot.margin = unit(c(2, 2, 2, 2), "cm"),
+        plot.background = element_rect(color = "#f2f2f2", fill = "#f2f2f2")) +
+  labs(title = "Habitat of the Oregon Spotted Frog", subtitle = "Data collected by the USGS September to November 2018 at the Crane Prairie Reservoir in Oregon, USA\n", y = "Number of frogs\n", caption = "\nData: usgs.gov | Sam Muir | tidytuesday")
+```
+
+
+Crane Prairie Reservoir in Oregon, USA.
+
+```{r}
+library(terra)
+library(sf)
+
+# prepare frogs spatial data
+frogs_sf <- st_as_sf(frogs, coords = c(7,8))
+st_crs(frogs_sf) <- "EPSG:26911"
+frogs_sf <- st_transform(frogs_sf, "EPSG:4326")
+```
+
