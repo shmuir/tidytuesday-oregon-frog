@@ -34,27 +34,33 @@ frogs_clean <- frogs %>%
 ```
 
 ```{r}
-ggplot(frogs_clean, aes(x = hab_type, y = sum, fill = sex)) +
-  geom_bar(stat = "identity") +
+bar <- ggplot(frogs_clean, aes(x = hab_type, y = sum, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
   scale_fill_manual(values = c("cornflowerblue", "seagreen")) +
   theme_minimal() +
-  theme(text = element_text(size = 8, family = font, color = "#000000"),
-        plot.title = element_text(family = font, size = 30, hjust = 0.5, face = "bold"),
+  theme(text = element_text(size = 30, family = font, color = "#000000"),
+        plot.title = element_text(family = font, size = 60, hjust = 0.5, face = "bold"),
         plot.title.position = "plot",
-        plot.subtitle = element_text(family = font, size = 10, hjust = 0.5, lineheight = 1.1),
-        plot.caption = element_text(hjust = 0.5, size = 8),
-        axis.text = element_text(size = 11, family = font, color = "#000000"),
-        axis.title.y = element_text(size = 13), 
+        plot.subtitle = element_text(family = font, size = 30, hjust = 0.5, lineheight = 0.3),
+        plot.caption = element_text(hjust = 0.5, size = 30),
+        axis.text = element_text(size = 30, family = font, color = "#000000"),
+        axis.title.y = element_text(size = 30), 
         axis.title.x = element_blank(), 
         legend.position = "top",
+        legend.key.size = unit(1, 'cm'),
         legend.title = element_blank(),
+        legend.text = element_text(size = 30),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.grid.major.y = element_line(color = "#000000", linewidth = 0.25),
+        panel.grid.major.y = element_line(color = "#000000", linewidth = 0.25, linetype = "dotted"),
         axis.line.x.bottom = element_line(color = "#000000", linewidth = 0.35),
         plot.margin = unit(c(2, 2, 2, 2), "cm"),
-        plot.background = element_rect(color = "#FDFBF7", fill = "#FDFBF7")) +
-  labs(title = "Habitat of the Oregon Spotted Frog", subtitle = "Data collected by the USGS September to November 2018 at the Crane Prairie Reservoir in Oregon, USA\n", y = "Number of frogs\n", caption = "\nData: usgs.gov | Sam Muir | tidytuesday")
+        plot.background = element_blank(),
+        panel.background = element_blank()) +
+  labs(title = "Habitat of the Oregon Spotted Frog", 
+       subtitle = "Data collected by the USGS September to November 2018\n Crane Prairie Reservoir in Oregon, USA\n", 
+       y = "Number of frogs", 
+       caption = "\nData: usgs.gov | tidytuesday | Sam Muir")
 ```
 
 
@@ -96,5 +102,48 @@ leaflet() %>%
   addScaleBar() %>%
   addTiles() # basemap
 ```
+
+```{r}
+library(mapdata)
+library(cowplot)
+
+usa <- map_data('usa')
+state <- map_data("state")
+counties <- map_data("county")
+oregon <- subset(state, region=="oregon")
+OR_county <- subset(counties, region=="oregon")
+sample_counties <- subset(OR_county, subregion %in% c("deschutes"))
+
+OR_counties_sf <- st_as_sf(OR_county, coords = c("long", "lat"))
+sample_counties_sf <- st_as_sf(sample_counties, coords = c("long", "lat"))
+
+
+#............................
+
+map <- ggplot(data=oregon, mapping=aes(x=long, y=lat, group=group)) + 
+  coord_fixed(1.3) + 
+  geom_polygon(color="black", fill="#FDFBF7") + 
+  theme_void()
+
+frog_plot <- ggdraw(map) + # ggdraw and draw plot adds the zoomed in plot
+  draw_plot(
+    {
+      bar
+      },
+    x = 0.1, # position on the main map
+    y = -0.02,
+    width = 0.8, # size of the zoomed in plot
+    height = 0.9)
+```
+
+
+```{r}
+ragg::agg_png(here::here("outputs", "frog_plot.png"), 
+              res = 320, width = 12, height = 8, units = "in")
+
+frog_plot
+dev.off()
+```
+
 
 
